@@ -6,114 +6,101 @@ A VSCode extension that helps Flutter developers easily jump to the definition o
 
 - **Automatic Route Detection**: Monitors Dart files for `*Route` class names (e.g., `HomeRoute`, `SettingsRoute`)
 - **Inline CodeLens**: Displays "Jump to Definition" buttons above matched route classes
-- **Smart Navigation**: Automatically finds and opens the corresponding widget file
-- **Configurable Settings**: Customize routes file path and naming conventions
+- **Smart Navigation**: Automatically finds and opens the corresponding widget file using import paths from `routes.gr.dart`
 - **Real-time Updates**: Refreshes when routes.gr.dart file is saved
+- **Zero Configuration**: Works out of the box with standard AutoRoute setups
 
 ## How It Works
 
-1. The extension scans your `routes.gr.dart` file to build a map of route definitions
-2. When you open a Dart file containing `*Route` classes, it shows inline "Jump to Definition" buttons
-3. Clicking a button opens the corresponding widget file and focuses on the class definition
+1. **Route Detection**: The extension scans your `routes.gr.dart` file to find route definitions
+2. **CodeLens Display**: When you open a Dart file containing `*Route` classes, it shows inline "Jump to Definition" buttons
+3. **Smart Navigation**: When you click a button, it:
+   - Converts the widget name to snake_case (e.g., `CompaniesScreen` → `companies_screen`)
+   - Finds the matching import in `routes.gr.dart`
+   - Converts the package path to a file system path
+   - Opens the correct file and focuses on the class definition
 
 ## Requirements
 
 - Flutter project with AutoRoute package
-- Generated `routes.gr.dart` file (default location: `lib/routes.gr.dart`)
-
-## Extension Settings
-
-This extension contributes the following settings:
-
-* `autoRouteFinder.routesFilePath`: Path to the routes.gr.dart file relative to workspace root (default: `lib/routes.gr.dart`)
-* `autoRouteFinder.replaceInRouteName`: Value for replaceInRouteName used in AutoRouterConfig (default: `Screen,Route`)
-
-## Configuration
-
-### Default Configuration
-
-The extension works out of the box with the default AutoRoute setup:
-
-```dart
-@AutoRouterConfig(replaceInRouteName: 'Screen,Route')
-class AppRouter extends _$AppRouter {
-  // Your routes...
-}
-```
-
-### Custom Configuration
-
-If you use different settings, configure them in your workspace `.vscode/settings.json`:
-
-```json
-{
-  "autoRouteFinder.routesFilePath": "lib/generated/routes.gr.dart",
-  "autoRouteFinder.replaceInRouteName": "Page,Route"
-}
-```
-
-### Example Project Structure
-
-```
-lib/
-├── routes.gr.dart          # Generated routes file
-├── screens/               # Widget files
-│   ├── home_screen.dart   # Contains HomeScreen class
-│   └── settings_screen.dart # Contains SettingsScreen class
-└── main.dart
-```
+- Generated `routes.gr.dart` file at `lib/routes.gr.dart`
 
 ## Usage
 
-1. Install the extension
-2. Open a Dart file containing route references (e.g., `HomeRoute`)
-3. Look for the "🔗 Jump to HomeScreen" button above the route class
-4. Click the button to navigate to the corresponding widget file
+1. **Install the extension**
+2. **Open a Dart file** containing route references (e.g., `CompaniesRoute()`)
+3. **Look for the CodeLens button** above the route class (e.g., "🔗 Jump to CompaniesScreen")
+4. **Click the button** to navigate to the corresponding widget file
 
-## Supported Route Patterns
-
-The extension recognizes these patterns in your `routes.gr.dart` file:
+## Example
 
 ```dart
-static const HomeRoute = AutoRoute<HomeScreen>(...);
-static const SettingsRoute = AutoRoute<SettingsScreen>(...);
+// In your Dart file
+context.router.push(const CompaniesRoute());
+
+// The extension will:
+// 1. Detect CompaniesRoute
+// 2. Show "🔗 Jump to CompaniesScreen" button
+// 3. When clicked, find this import in routes.gr.dart:
+//    import 'package:myapp/features/companies/screens/companies_screen.dart' as _i4;
+// 4. Convert to: lib/features/companies/screens/companies_screen.dart
+// 5. Open the file and focus on the CompaniesScreen class
+```
+
+## File Structure Support
+
+The extension automatically handles various project structures by reading import paths from `routes.gr.dart`:
+
+```
+lib/
+├── routes.gr.dart
+├── features/
+│   ├── companies/
+│   │   └── screens/
+│   │       └── companies_screen.dart
+│   └── profile/
+│       └── screens/
+│           └── profile_detail_screen.dart
+└── main.dart
 ```
 
 ## Troubleshooting
 
-### Routes Not Detected
+### No CodeLens Buttons Appear
 
-1. Ensure your `routes.gr.dart` file exists at the configured path
-2. Check that your AutoRoute configuration matches the `replaceInRouteName` setting
-3. Verify that your widget files contain the expected class names
+1. **Check routes.gr.dart exists**: Ensure the file is at `lib/routes.gr.dart`
+2. **Verify AutoRoute setup**: Make sure your routes are properly generated
+3. **Check console logs**: Open Developer Tools to see debug information
 
-### Widget Files Not Found
+### "No file path found" Error
 
-The extension searches for widget files in these locations:
-- `lib/screens/`
-- `lib/pages/`
-- `lib/views/`
-- `lib/`
-- `lib/src/screens/`
-- `lib/src/pages/`
-- `lib/src/views/`
+1. **Check import statements**: Ensure your `routes.gr.dart` contains proper import statements
+2. **Verify file naming**: Widget files should be in snake_case (e.g., `companies_screen.dart`)
+3. **Check file structure**: Ensure the file exists at the path specified in the import
 
-Make sure your widget files are in one of these directories or adjust the search logic.
+### File Not Found Error
 
-### Performance
+1. **Verify file exists**: Check that the widget file actually exists
+2. **Check import path**: Ensure the import path in `routes.gr.dart` is correct
+3. **Check workspace**: Make sure you're in the correct Flutter project root
 
-- The extension caches route definitions and refreshes them when `routes.gr.dart` is saved
-- Large projects with many routes may take a moment to load initially
+## Debugging
+
+The extension provides detailed console logging. To see debug information:
+
+1. Open **Help > Toggle Developer Tools**
+2. Look for messages starting with "Auto Route Finder:"
+3. Check for file path resolution and import matching logs
 
 ## Release Notes
 
 ### 0.0.1
 
-Initial release with core functionality:
-- Route detection and parsing
-- CodeLens integration
-- Configurable settings
-- Smart widget file discovery
+- **Simple & Direct Approach**: Uses import paths from `routes.gr.dart` for accurate file navigation
+- **Snake Case Conversion**: Automatically converts widget names to snake_case for file matching
+- **Package Path Resolution**: Converts `package:app/path` to `lib/path` automatically
+- **Zero Configuration**: Works out of the box with standard Flutter/AutoRoute projects
+- **Real-time Updates**: Automatically refreshes when `routes.gr.dart` is saved
 
 ## Contributing
 
