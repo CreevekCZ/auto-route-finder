@@ -1,0 +1,4 @@
+{
+  "autoRouteFinder.routesFilePath": "lib/routes.gr.dart",
+  "autoRouteFinder.replaceInRouteName": "Screen,Route"
+}
