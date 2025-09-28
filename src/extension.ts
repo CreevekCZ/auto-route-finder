@@ -98,10 +98,6 @@ class AutoRouteCodeLensProvider implements vscode.CodeLensProvider {
 				vscode.window.showInformationMessage(
 					`Auto Route Finder: Successfully loaded ${this.routeDefinitions.size} route definitions from routes.gr.dart`
 				);
-			} else {
-				vscode.window.showWarningMessage(
-					'Auto Route Finder: Loaded routes.gr.dart but found no route definitions. Check your AutoRoute configuration.'
-				);
 			}
 		} catch (error) {
 			console.error('Auto Route Finder: Error loading route definitions:', error);
@@ -592,9 +588,9 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	// Show welcome message
-	vscode.window.showInformationMessage(
-		'Auto Route Finder is active! Looking for routes at lib/routes.gr.dart'
-	);
+	// vscode.window.showInformationMessage(
+	// 	'Auto Route Finder is active! Looking for routes at lib/routes.gr.dart'
+	// );
 }
 
 // This method is called when your extension is deactivated
