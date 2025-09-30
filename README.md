@@ -6,27 +6,30 @@ A VSCode extension that helps Flutter developers easily jump to the definition o
 ## Features
 
 - **Automatic Route Detection**: Monitors Dart files for `*Route` class names (e.g., `HomeRoute`, `SettingsRoute`)
-- **Inline CodeLens**: Displays "Jump to Definition" buttons above matched route classes
-- **Smart Navigation**: Automatically finds and opens the corresponding widget file using import paths from `routes.gr.dart`
-- **Real-time Updates**: Refreshes when routes.gr.dart file is saved
+- **Inline CodeLens (smart)**: Displays "Jump to Definition" only when the corresponding widget file can be resolved from `routes.gr.dart`
+- **Indexed Discovery (no hardcoding)**: Uses VS Code’s workspace index to discover `routes.gr.dart` anywhere in the workspace (no hardcoded paths)
+- **Multi-file Support**: Handles multiple `routes.gr.dart` files; the correct file is resolved by searching all indexed results
+- **Smart Navigation**: Converts widget names to snake_case, resolves imports from `routes.gr.dart`, maps `package:…` to `lib/…`, and opens the widget file
+- **Real-time Updates**: Refreshes automatically when any `routes.gr.dart` file is saved
 - **Zero Configuration**: Works out of the box with standard AutoRoute setups
 
 ![Preview](assets/preview.png)
 
 ## How It Works
 
-1. **Route Detection**: The extension scans your `routes.gr.dart` file to find route definitions
-2. **CodeLens Display**: When you open a Dart file containing `*Route` classes, it shows inline "Jump to Definition" buttons
-3. **Smart Navigation**: When you click a button, it:
-   - Converts the widget name to snake_case (e.g., `CompaniesScreen` → `companies_screen`)
-   - Finds the matching import in `routes.gr.dart`
-   - Converts the package path to a file system path
-   - Opens the correct file and focuses on the class definition
+1. **Discovery**: On activation, the extension uses VS Code indexing to find all `routes.gr.dart` files (`workspace.findFiles('**/routes.gr.dart', …)`).
+2. **CodeLens Display**: When a Dart file with `*Route` tokens is opened, the provider:
+   - Converts the inferred widget name (e.g., `CompaniesScreen`) to snake_case (`companies_screen`).
+   - Searches all discovered `routes.gr.dart` files for an import that contains that snake_case name.
+   - If a matching import is found and the file exists locally, shows a "🔗 Jump to …" CodeLens.
+3. **Navigation**: Clicking the CodeLens opens the file and focuses the widget class definition.
+
+If no `routes.gr.dart` is found in the workspace, a notification is shown on activation.
 
 ## Requirements
 
-- Flutter project with AutoRoute package
-- Generated `routes.gr.dart` file at `lib/routes.gr.dart`
+- Flutter project using AutoRoute
+- A generated `routes.gr.dart` present somewhere in the workspace (typically `lib/routes.gr.dart`)
 
 ## Usage
 
@@ -71,39 +74,51 @@ lib/
 
 ### No CodeLens Buttons Appear
 
-1. **Check routes.gr.dart exists**: Ensure the file is at `lib/routes.gr.dart`
-2. **Verify AutoRoute setup**: Make sure your routes are properly generated
-3. **Check console logs**: Open Developer Tools to see debug information
+1. **Ensure at least one routes.gr.dart exists**: The extension shows a notification if none are found.
+2. **Verify AutoRoute generation**: Make sure your routes are generated and imports exist for your widgets.
+3. **Open the correct workspace root**: Discovery runs from the VS Code workspace folder(s).
 
 ### "No file path found" Error
 
-1. **Check import statements**: Ensure your `routes.gr.dart` contains proper import statements
-2. **Verify file naming**: Widget files should be in snake_case (e.g., `companies_screen.dart`)
-3. **Check file structure**: Ensure the file exists at the path specified in the import
+1. **Check import statements** in your `routes.gr.dart` for the target widget (snake_case match).
+2. **Verify file naming**: Widget files should be in snake_case (e.g., `companies_screen.dart`).
+3. **Confirm file exists** at the path resolved from the import (`package:…` → `lib/…`).
 
-### File Not Found Error
+### Multi-root or multiple `routes.gr.dart`
 
-1. **Verify file exists**: Check that the widget file actually exists
-2. **Check import path**: Ensure the import path in `routes.gr.dart` is correct
-3. **Check workspace**: Make sure you're in the correct Flutter project root
+- The extension scans all discovered `routes.gr.dart` files and uses the first matching import.
+- If you have multiple apps/packages, ensure imports are unambiguous.
+
+### Limitations
+- The extension will only work when Screens are in its own file, not in the file that is named differently the the screen widget name.
+Example:
+```dart
+// file name: home_screen.dart
+
+@RoutePage()
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
+}
+```
 
 ## Debugging
 
-The extension provides detailed console logging. To see debug information:
-
-1. Open **Help > Toggle Developer Tools**
-2. Look for messages starting with "Auto Route Finder:"
-3. Check for file path resolution and import matching logs
+- Open **Help > Toggle Developer Tools** to view logs.
+- Look for messages prefixed with "Auto Route Finder:" when resolving imports and opening files.
 
 ## Release Notes
 
-### 0.0.1
+### 0.0.2
+- Added VS Code indexed discovery for `routes.gr.dart` (no hardcoded paths)
+- Multi-file support for workspaces with more than one `routes.gr.dart`
+- CodeLens only shows when the widget file is resolvable from `routes.gr.dart`
+- Notification when no `routes.gr.dart` is found
 
-- **Simple & Direct Approach**: Uses import paths from `routes.gr.dart` for accurate file navigation
-- **Snake Case Conversion**: Automatically converts widget names to snake_case for file matching
-- **Package Path Resolution**: Converts `package:app/path` to `lib/path` automatically
-- **Zero Configuration**: Works out of the box with standard Flutter/AutoRoute projects
-- **Real-time Updates**: Automatically refreshes when `routes.gr.dart` is saved
+### 0.0.1
+- Initial release with import-based navigation, snake_case conversion, and CodeLens
 
 ## Contributing
 
