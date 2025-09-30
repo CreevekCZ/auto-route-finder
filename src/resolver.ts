@@ -11,10 +11,22 @@ export interface RouteDefinition {
 
 export class RoutesResolver {
 	private cachedRoutesFilePath: string | null = null;
+	private indexedRoutesFiles: string[] = [];
 	private readonly defaultRoutesRelPath = 'lib/routes.gr.dart';
 
 	public getWorkspaceRoot(): string | null {
 		return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
+	}
+
+	public async indexRoutesFiles(): Promise<string[]> {
+		try {
+			const uris = await vscode.workspace.findFiles('**/routes.gr.dart', '{**/node_modules/**,**/.dart_tool/**,**/build/**,**/.git/**}', 50);
+			this.indexedRoutesFiles = uris.map(u => u.fsPath);
+			return this.indexedRoutesFiles;
+		} catch {
+			this.indexedRoutesFiles = [];
+			return [];
+		}
 	}
 
 	public findRoutesFilePath(): string | null {
@@ -23,6 +35,12 @@ export class RoutesResolver {
 		}
 		const root = this.getWorkspaceRoot();
 		if (!root) return null;
+
+		// Prefer indexed files if present
+		if (this.indexedRoutesFiles.length > 0) {
+			this.cachedRoutesFilePath = this.indexedRoutesFiles[0];
+			return this.cachedRoutesFilePath;
+		}
 
 		const candidates = [
 			path.join(root, this.defaultRoutesRelPath),
@@ -46,29 +64,34 @@ export class RoutesResolver {
 	public resolveWidgetPath(widgetName: string): string | null {
 		const root = this.getWorkspaceRoot();
 		if (!root) return null;
-		const routesFile = this.findRoutesFilePath();
-		if (!routesFile) return null;
 
-		try {
-			const content = fs.readFileSync(routesFile, 'utf8');
-			const needle = this.toSnakeCase(widgetName);
-			const importRegex = /import\s+['"]([^'\"]*\.dart)['"]/g;
-			let m: RegExpExecArray | null;
-			while ((m = importRegex.exec(content)) !== null) {
-				const imp = m[1];
-				if (!imp.includes(needle)) continue;
-				let rel: string | null = imp;
-				if (imp.startsWith('package:')) {
-					const mm = imp.match(/^package:[^/]+\/(.+)$/);
-					rel = mm ? path.join('lib', mm[1]) : null;
+		const filesToScan = this.indexedRoutesFiles.length > 0
+			? this.indexedRoutesFiles
+			: (this.findRoutesFilePath() ? [this.findRoutesFilePath() as string] : []);
+		if (filesToScan.length === 0) return null;
+
+		const needle = this.toSnakeCase(widgetName);
+		for (const routesFile of filesToScan) {
+			try {
+				const content = fs.readFileSync(routesFile, 'utf8');
+				const importRegex = /import\s+['"]([^'\"]*\.dart)['"]/g;
+				let m: RegExpExecArray | null;
+				while ((m = importRegex.exec(content)) !== null) {
+					const imp = m[1];
+					if (!imp.includes(needle)) continue;
+					let rel: string | null = imp;
+					if (imp.startsWith('package:')) {
+						const mm = imp.match(/^package:[^/]+\/(.+)$/);
+						rel = mm ? path.join('lib', mm[1]) : null;
+					}
+					if (!rel) continue;
+					const full = path.isAbsolute(rel) ? rel : path.join(root, rel);
+					if (fs.existsSync(full)) return full;
 				}
-				if (!rel) continue;
-				const full = path.join(root, rel);
-				if (fs.existsSync(full)) return full;
+			} catch {
+				// continue to next file
 			}
-			return null;
-		} catch {
-			return null;
 		}
+		return null;
 	}
 }
