@@ -5,19 +5,28 @@ import { RoutesResolver } from './resolver';
 import { AutoRouteCodeLensProvider } from './codelens';
 import { registerJumpCommand } from './commands';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	const resolver = new RoutesResolver();
-	const codeLensProvider = new AutoRouteCodeLensProvider(resolver);
+	await resolver.indexRoutesFiles();
 
+	const codeLensProvider = new AutoRouteCodeLensProvider(resolver);
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		{ language: 'dart' },
 		codeLensProvider
 	);
 
+	const routesFound = await resolver.indexRoutesFiles();
+	if (routesFound.length === 0) {
+		vscode.window.showWarningMessage('Auto Route Finder: routes.gr.dart not found in this workspace. CodeLens will be hidden.');
+	} else {
+		codeLensProvider.refresh();
+	}
+
 	const jumpDisposable = registerJumpCommand(resolver);
 
-	const fileChangeListener = vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
+	const fileChangeListener = vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
 		if (document.fileName.endsWith('routes.gr.dart')) {
+			await resolver.indexRoutesFiles();
 			codeLensProvider.refresh();
 		}
 	});
